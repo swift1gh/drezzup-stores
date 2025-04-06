@@ -6,7 +6,20 @@ export default defineConfig({
   build: {
     outDir: "dist",
     rollupOptions: {
-      external: ["react-router-dom"],
+      external: [
+        "react-router-dom",
+        "firebase",
+        "firebase/app",
+        "firebase/auth",
+        "firebase/firestore",
+        "firebase/storage",
+        "firebase/analytics",
+      ],
+    },
+  },
+  resolve: {
+    alias: {
+      src: "/src",
     },
   },
 });
