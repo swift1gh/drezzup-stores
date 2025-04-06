@@ -1,0 +1,143 @@
+@import url("https://fonts.googleapis.com/css2?family=Roboto:ital,wght@0,100;0,300;0,400;0,500;0,700;0,900;1,100;1,300;1,400;1,500;1,700;1,900&display=swap");
+@import url("https://fonts.googleapis.com/css2?family=Courgette&display=swap");
+
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+.courgette {
+  font-family: "Courgette", cursive;
+  font-weight: 400;
+  font-style: normal;
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.scrollbar-hide::-webkit-scrollbar {
+  display: none;
+}
+
+/* Hide scrollbar for IE, Edge and Firefox */
+.scrollbar-hide {
+  -ms-overflow-style: none; /* IE and Edge */
+  scrollbar-width: none; /* Firefox */
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+.hover\:text-green-500 {
+  filter: invert(50%) sepia(100%) saturate(1000%) hue-rotate(85deg)
+    brightness(90%) contrast(100%);
+}
+
+#navbar {
+  position: sticky;
+  top: 0;
+  z-index: 1000; /* Ensure the navbar is above the spotlight */
+}
+
+#filters {
+  position: sticky;
+  top: 60px; /* Adjust this value based on the height of your navbar */
+  z-index: 1000; /* Ensure the filters are above the spotlight */
+}
+
+.modal-content::-webkit-scrollbar {
+  width: 10px;
+}
+
+.modal-content::-webkit-scrollbar-track {
+  background: #f1f1f1;
+}
+
+.modal-content::-webkit-scrollbar-thumb {
+  background: #888;
+  border-radius: 20px;
+}
+
+.modal-content::-webkit-scrollbar-thumb:hover {
+  background: #555;
+}
+
+@keyframes slideUp {
+  from {
+    opacity: 0;
+    transform: translate(-50%, 20px);
+  }
+  to {
+    opacity: 1;
+    transform: translate(-50%, 0);
+  }
+}
+
+.animate-slideUp {
+  animation: slideUp 0.3s ease-out forwards;
+}
+
+/* Reset and base styles */
+html,
+body {
+  height: 100%;
+  margin: 0;
+  padding: 0;
+  overflow-x: hidden;
+}
+
+#root {
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+}
+
+/* Main content wrapper */
+main {
+  flex: 1 0 auto;
+  width: 100%;
+}
+
+/* Footer styles */
+footer {
+  flex-shrink: 0;
+  width: 100%;
+}
+
+/* Ensure content doesn't overflow */
+* {
+  box-sizing: border-box;
+}
+
+/* Prevent horizontal scroll */
+body {
+  overflow-x: hidden;
+  width: 100%;
+  position: relative;
+}
+
+/* Fix for Chrome specific scrolling */
+html {
+  overflow-y: scroll;
+  -webkit-overflow-scrolling: touch;
+}
+
+/* App container styles */
+.app-container {
+  display: flex;
+  flex-direction: column;
+  min-height: 100vh;
+  width: 100%;
+  position: relative;
+  overflow-x: hidden;
+}
+
+/* Ensure content stays within bounds */
+.app-container > * {
+  width: 100%;
+}
+
+/* Fix for Chrome specific issues */
+@media screen and (-webkit-min-device-pixel-ratio: 0) {
+  .app-container {
+    min-height: -webkit-fill-available;
+  }
+}
