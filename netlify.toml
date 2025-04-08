@@ -1,51 +1,11 @@
 [build]
   command = "npm run build"
-  publish = "dist"
+  publish = "build"
+  
+[context.production]
+  environment = { NODE_VERSION = "16" }
 
 [[redirects]]
   from = "/*"
   to = "/index.html"
   status = 200
-
-
-4. **Add Netlify Configuration**:
-   If you're using Netlify, make sure you have a proper `netlify.toml` file for SPA routing:
-```toml
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-```
-
-<File
-```toml
-[build]
-  command = "npm run build"
-  publish = "dist"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-
-
-4. **Add Netlify Configuration**:
-   If you're using Netlify, make sure you have a proper `netlify.toml` file for SPA routing:
-```toml
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-```
-
-<File
-```toml
-[build]
-  command = "npm run build"
-  publish = "dist"
-
-[[redirects]]
-  from = "/*"
-  to = "/index.html"
-  status = 200
-```
