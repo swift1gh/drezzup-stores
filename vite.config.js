@@ -5,44 +5,13 @@ export default defineConfig({
   plugins: [react()],
   build: {
     outDir: "dist",
-    chunkSizeWarningLimit: 1000,
+    chunkSizeWarningLimit: 2000,
     rollupOptions: {
+      // Don't use external for these packages
+      external: [],
       output: {
-        manualChunks: (id) => {
-          // React and related libraries
-          if (id.includes('node_modules/react') || id.includes('node_modules/react-dom')) {
-            return 'react-vendor';
-          }
-          
-          // React Router
-          if (id.includes('node_modules/react-router-dom')) {
-            return 'router-vendor';
-          }
-          
-          // Firebase modules - use a single chunk for all Firebase
-          if (id.includes('node_modules/firebase')) {
-            return 'firebase-vendor';
-          }
-          
-          // Application code
-          if (id.includes('/src/components/')) {
-            return 'app-components';
-          }
-          if (id.includes('/src/pages/')) {
-            return 'app-pages';
-          }
-          if (id.includes('/src/utils/')) {
-            return 'app-utils';
-          }
-          if (id.includes('/src/hooks/')) {
-            return 'app-hooks';
-          }
-          
-          // Other node modules
-          if (id.includes('node_modules')) {
-            return 'vendor';
-          }
-        }
+        // Disable code splitting entirely
+        manualChunks: undefined
       }
     }
   },
