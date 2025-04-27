@@ -40,7 +40,8 @@ const Product = ({
             ? "border-b-4 border-2 border-[#bd815a] shadow-md"
             : "border-[#e0e0e0] hover:border-gray-400"
         }`}>
-        <div className="p-1 bg-gray-200 w-auto h-[7rem] md:h-[8rem] flex justify-center items-center rounded-2xl shadow-inner border border-[#e5e5e5] relative overflow-hidden">
+        {/* Reduced padding to match the preview image dimensions */}
+        <div className="p-0 bg-gray-200 w-auto h-[7rem] md:h-[8rem] flex justify-center items-center rounded-2xl shadow-inner border border-[#e5e5e5] relative overflow-hidden">
           {(!imageLoaded || loading) && (
             <motion.div
               animate={{ rotate: 360 }}
@@ -51,7 +52,7 @@ const Product = ({
           <img
             src={Image}
             alt={Name}
-            className={`h-full object-contain w-full transition-all duration-500 mx-auto ${
+            className={`w-full h-full object-contain transition-all duration-500 mx-auto ${
               imageLoaded ? "opacity-100 scale-100" : "opacity-0 scale-95"
             }`}
             onLoad={() => setImageLoaded(true)}
