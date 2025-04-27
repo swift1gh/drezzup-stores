@@ -9,6 +9,7 @@ import {
   orderBy,
   limit,
 } from "firebase/firestore";
+import { getStorage, ref, deleteObject } from "firebase/storage";
 import { db } from "../../utils/firebase";
 
 const ProductDeleteForm = ({
@@ -115,6 +116,24 @@ const ProductDeleteForm = ({
     }
   };
 
+  // Extract image path from Firebase Storage URL
+  const getImagePathFromUrl = (url) => {
+    try {
+      // Extract the path after /o/ and before the query parameters
+      const parsedUrl = new URL(url);
+      const pathSegment = parsedUrl.pathname.split("/o/")[1];
+
+      // Decode the URL-encoded path
+      if (pathSegment) {
+        return decodeURIComponent(pathSegment);
+      }
+      return null;
+    } catch (error) {
+      console.error("Error parsing image URL:", error);
+      return null;
+    }
+  };
+
   const handleDelete = async () => {
     if (!deleteProductId) {
       showMessage("No product selected for deletion.", "error");
@@ -124,6 +143,30 @@ const ProductDeleteForm = ({
     setDeleteLoading(true);
     try {
       console.log("Deleting product with ID:", deleteProductId);
+
+      // Delete the image from Firebase Storage if we have an image URL
+      if (deleteProductImageUrl) {
+        try {
+          const storage = getStorage();
+          const imagePath = getImagePathFromUrl(deleteProductImageUrl);
+
+          if (imagePath) {
+            const imageRef = ref(storage, imagePath);
+            await deleteObject(imageRef);
+            console.log("Product image deleted successfully from Storage");
+          } else {
+            console.warn("Could not parse image path from URL");
+          }
+        } catch (imageError) {
+          console.error("Error deleting product image:", imageError);
+          showMessage(
+            `Warning: Product deleted but image deletion failed: ${imageError.message}`,
+            "warning"
+          );
+        }
+      }
+
+      // Delete the product document from Firestore
       await deleteDoc(doc(db, "products", deleteProductId));
       showMessage("Product deleted successfully!", "success");
       setDeleteProductName("");

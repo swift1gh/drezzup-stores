@@ -14,8 +14,8 @@ const Product = ({
   const [imageLoaded, setImageLoaded] = useState(false);
   const [showTooltip, setShowTooltip] = useState(false);
 
-  // Check if the name is long enough to need a tooltip
-  const needsTooltip = Name.length > 15;
+  // Simple check based on name length - most likely those will be truncated
+  const nameLikelyTruncated = Name.length > 15;
 
   // Format the color to title case while preserving spaces
   const formatColorToTitleCase = (color) => {
@@ -62,12 +62,12 @@ const Product = ({
         <div className="flex flex-col py-2 relative">
           <h2
             className="uppercase font-semibold font-robotoCondensed text-[12px] md:text-[16px] text-gray-800 line-clamp-1"
-            onMouseEnter={() => needsTooltip && setShowTooltip(true)}
-            onMouseLeave={() => needsTooltip && setShowTooltip(false)}>
+            onMouseEnter={() => nameLikelyTruncated && setShowTooltip(true)}
+            onMouseLeave={() => setShowTooltip(false)}>
             {Name}
 
-            {/* Only show tooltip for long names and when hovering */}
-            {showTooltip && needsTooltip && (
+            {/* Only show tooltip for long names when hovering */}
+            {showTooltip && nameLikelyTruncated && (
               <div className="absolute z-50 bg-white px-3 py-2 rounded-lg shadow-lg border border-gray-200 text-gray-800 text-xs md:text-sm font-normal normal-case w-[180px] md:w-[200px] top-full left-1/2 transform -translate-x-1/2 mt-1">
                 {Name}
                 <div className="absolute -top-2 left-1/2 transform -translate-x-1/2 w-3 h-3 bg-white border-t border-l border-gray-200 rotate-45"></div>

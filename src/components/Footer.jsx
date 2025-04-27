@@ -14,7 +14,7 @@ const Footer = () => {
             </h1>
           </div>
 
-          <p className="text-sm mb-2">
+          <p className="text-sm mb-2 italic text-gray-500 text-center md:text-left">
             &#169;2025 DREZZUP. All Rights Reserved.
           </p>
         </div>
