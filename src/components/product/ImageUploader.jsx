@@ -1,6 +1,5 @@
-import React from "react";
-import { FaUpload, FaSpinner } from "react-icons/fa";
-import { upload } from "../../utils/storage";
+import React, { useState } from "react";
+import { FaUpload, FaSpinner, FaTimes } from "react-icons/fa";
 import removeBg from "../../utils/removeBg";
 
 const ImageUploader = ({
@@ -9,9 +8,20 @@ const ImageUploader = ({
   showMessage,
   onImageProcessed,
 }) => {
+  const [isDragging, setIsDragging] = useState(false);
+  const [previewUrl, setPreviewUrl] = useState(null);
+
+  // Only log component initialization in development
+  if (process.env.NODE_ENV === "development") {
+    console.log("[ImageUploader] Component rendered");
+  }
+
   const handleFileUpload = async (e) => {
     const file = e.target.files[0];
     if (!file) return;
+
+    // Log important file info
+    console.log("[ImageUploader] Processing file:", file.name, file.size);
 
     const validImageTypes = ["image/jpeg", "image/png"];
     if (!validImageTypes.includes(file.type)) {
@@ -23,13 +33,16 @@ const ImageUploader = ({
     showMessage("Processing image...", "info");
 
     try {
-      // First try to remove background
+      // Background removal process
       let processedImageUrl;
       try {
-        console.log("Removing background from image...");
+        console.log("[ImageUploader] Removing background...");
         processedImageUrl = await removeBg(file);
       } catch (bgError) {
-        console.error("Background removal failed:", bgError);
+        console.error(
+          "[ImageUploader] Background removal failed:",
+          bgError.message
+        );
         showMessage(
           "Background removal failed. Uploading original image...",
           "info"
@@ -37,40 +50,52 @@ const ImageUploader = ({
         processedImageUrl = null;
       }
 
-      // If background removal fails, use the original file
       let fileToUpload = file;
 
-      // If background removal succeeded, convert URL to File
       if (processedImageUrl) {
         try {
           const response = await fetch(processedImageUrl);
           const blob = await response.blob();
           fileToUpload = new File([blob], file.name, { type: "image/png" });
-          // Resize the image after background removal
           fileToUpload = await resizeImage(fileToUpload);
+          console.log("[ImageUploader] Image processed successfully");
         } catch (conversionError) {
-          console.error("Error converting blob URL to File:", conversionError);
-          fileToUpload = file; // Fallback to original file
+          console.error(
+            "[ImageUploader] Processing error:",
+            conversionError.message
+          );
+          fileToUpload = file;
         }
       }
 
-      // Store the file for later upload instead of uploading immediately
+      const preview = URL.createObjectURL(fileToUpload);
+      setPreviewUrl(preview);
+
       setFileLoading(false);
       showMessage(
         "Image processed successfully! Click 'Upload Product' to complete.",
         "success"
       );
 
-      // Pass the processed file to the parent component
       onImageProcessed(fileToUpload);
     } catch (error) {
-      console.error("Error processing image:", error);
+      console.error("[ImageUploader] Error:", error.message);
       showMessage(
         `Error processing image: ${error.message}. Please try again.`,
         "error"
       );
       setFileLoading(false);
     }
+  };
+
+  const handleCancel = () => {
+    if (previewUrl) {
+      URL.revokeObjectURL(previewUrl);
+      setPreviewUrl(null);
+    }
+    onImageProcessed(null);
+    window.processedFileToUpload = null;
+    showMessage("Image removed", "info");
   };
 
   const resizeImage = (file) => {
@@ -83,35 +108,37 @@ const ImageUploader = ({
         const maxWidth = 700;
         const maxHeight = 500;
 
-        // Calculate dimensions while preserving aspect ratio
         let width = img.width;
         let height = img.height;
 
-        // Calculate the scaling ratio to fit within our constraints
+        // Calculate dimensions
         if (width > height) {
-          // Landscape orientation
           if (width > maxWidth) {
             height = Math.round(height * (maxWidth / width));
             width = maxWidth;
           }
         } else {
-          // Portrait orientation
           if (height > maxHeight) {
             width = Math.round(width * (maxHeight / height));
             height = maxHeight;
           }
         }
 
-        // Set canvas size to the new dimensions
         canvas.width = width;
         canvas.height = height;
-
-        // Draw image with the new dimensions
         ctx.drawImage(img, 0, 0, width, height);
 
         canvas.toBlob((blob) => {
-          resolve(new File([blob], file.name, { type: "image/png" }));
+          const resizedFile = new File([blob], file.name, {
+            type: "image/png",
+          });
+          resolve(resizedFile);
         }, "image/png");
+      };
+
+      img.onerror = (error) => {
+        console.error("[ImageUploader] Image load error:", error);
+        resolve(file); // Return original file on error
       };
     });
   };
@@ -124,8 +151,19 @@ const ImageUploader = ({
       .replace(/\s+/g, "");
   };
 
+  const handleDragEnter = (e) => {
+    e.preventDefault();
+    setIsDragging(true);
+  };
+
+  const handleDragLeave = (e) => {
+    e.preventDefault();
+    setIsDragging(false);
+  };
+
   const handleDrop = (e) => {
     e.preventDefault();
+    setIsDragging(false);
     const file = e.dataTransfer.files[0];
     if (file) {
       const event = { target: { files: [file] } };
@@ -135,30 +173,77 @@ const ImageUploader = ({
 
   return (
     <div
-      className="flex flex-col gap-4 p-6 border-2 border-dashed border-gray-300 rounded-lg hover:border-[#BD815A] transition-colors duration-200 bg-gray-100"
+      className={`flex flex-col gap-4 p-6 border-2 ${
+        isDragging
+          ? "border-[#BD815A] bg-[#f5ece7]"
+          : "border-dashed border-gray-300 bg-gray-100"
+      } rounded-lg hover:border-[#BD815A] transition-colors duration-300`}
       onDrop={handleDrop}
-      onDragOver={(e) => e.preventDefault()}>
-      <label className="cursor-pointer">
-        <div className="flex flex-col items-center justify-center gap-3 text-center">
-          <div className="p-3 bg-gray-100 rounded-full">
-            <FaUpload className="w-6 h-6 text-gray-500" />
+      onDragOver={(e) => e.preventDefault()}
+      onDragEnter={handleDragEnter}
+      onDragLeave={handleDragLeave}>
+      {previewUrl ? (
+        <div className="relative">
+          <div className="relative rounded-lg overflow-hidden">
+            <img
+              src={previewUrl}
+              alt="Preview"
+              className="w-full h-48 object-contain"
+            />
+            <button
+              onClick={handleCancel}
+              className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-colors shadow-lg z-10"
+              title="Remove image">
+              <FaTimes />
+            </button>
           </div>
-          <div>
-            <p className="font-medium text-gray-700">
-              Drag & drop or click to upload
-            </p>
-            <p className="text-sm text-gray-500">PNG or JPG</p>
-          </div>
-          <input type="file" onChange={handleFileUpload} className="hidden" />
+          <p className="mt-2 text-center text-sm text-gray-600 font-medium">
+            Image ready for upload
+          </p>
         </div>
-      </label>
-      <span className="text-sm text-gray-500 text-center">
-        {fileLoading
-          ? "Processing..."
-          : window.processedFileToUpload
-          ? "File ready for upload"
-          : "No file chosen"}
-      </span>
+      ) : (
+        <>
+          <label className="cursor-pointer">
+            <div className="flex flex-col items-center justify-center gap-3 text-center">
+              <div
+                className={`p-3 ${
+                  isDragging ? "bg-[#f5ece7]" : "bg-gray-100"
+                } rounded-full transition-colors duration-300`}>
+                {fileLoading ? (
+                  <FaSpinner className="w-6 h-6 text-[#BD815A] animate-spin" />
+                ) : (
+                  <FaUpload
+                    className={`w-6 h-6 ${
+                      isDragging ? "text-[#BD815A]" : "text-gray-500"
+                    } transition-colors duration-300`}
+                  />
+                )}
+              </div>
+              <div>
+                <p className="font-medium text-gray-700">
+                  {isDragging
+                    ? "Drop image here"
+                    : "Drag & drop or click to upload"}
+                </p>
+                <p className="text-sm text-gray-500">PNG or JPG</p>
+              </div>
+              <input
+                type="file"
+                onChange={handleFileUpload}
+                className="hidden"
+                accept="image/png,image/jpeg"
+              />
+            </div>
+          </label>
+          <span className="text-sm text-center font-medium">
+            {fileLoading ? (
+              <span className="text-[#BD815A]">Processing image...</span>
+            ) : (
+              <span className="text-gray-500">No file chosen</span>
+            )}
+          </span>
+        </>
+      )}
     </div>
   );
 };

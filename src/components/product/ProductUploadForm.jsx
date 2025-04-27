@@ -1,5 +1,11 @@
-import React from "react";
-import { FaSpinner, FaTrash, FaUpload, FaArrowRight } from "react-icons/fa";
+import React, { useState, useEffect } from "react";
+import {
+  FaSpinner,
+  FaTrash,
+  FaUpload,
+  FaArrowRight,
+  FaTimes,
+} from "react-icons/fa";
 import { collection, addDoc } from "firebase/firestore";
 import { db } from "../../utils/firebase";
 import { upload } from "../../utils/storage";
@@ -23,38 +29,56 @@ const ProductUploadForm = ({
   showMessage,
   toggleForm,
 }) => {
-  const [processedFile, setProcessedFile] = React.useState(null);
+  const [processedFile, setProcessedFile] = useState(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+
+  console.log("[ProductUploadForm] Initialized with product ID:", productId);
 
   const handleImageProcessed = (file) => {
     setProcessedFile(file);
     window.processedFileToUpload = file;
+    if (file) {
+      console.log("[ProductUploadForm] Image processed:", file.name);
+    }
+  };
+
+  const handleRemoveImage = () => {
+    if (processedFile) {
+      URL.revokeObjectURL(URL.createObjectURL(processedFile));
+    }
+
+    setProcessedFile(null);
+    window.processedFileToUpload = null;
+    setProductImageUrl("");
+
+    showMessage("Image removed", "info");
   };
 
   const formatText = (text) => {
-    return text
-      .trim() // Remove spaces from beginning and end
-      .replace(/\s+/g, " ") // Replace multiple spaces with a single space
-      .replace(/\b\w/g, (char) => char.toUpperCase()); // Capitalize first letter of each word
+    const formatted = text
+      .trim()
+      .replace(/\s+/g, " ")
+      .replace(/\b\w/g, (char) => char.toUpperCase());
+    return formatted;
   };
 
   const handleProductNameChange = (e) => {
-    setProductName(e.target.value); // No formatting during typing
+    setProductName(e.target.value);
   };
 
   const handleProductColorChange = (e) => {
-    setProductColor(e.target.value); // No formatting during typing
+    setProductColor(e.target.value);
   };
 
   const handleUpload = async () => {
-    // Format text inputs before validation and submission
+    if (isSubmitting) return;
+
     const formattedName = formatText(productName);
     const formattedColor = formatText(productColor);
 
-    // Update the state with formatted values
     setProductName(formattedName);
     setProductColor(formattedColor);
 
-    // Enhanced input validation
     if (!formattedName) {
       showMessage("Please enter a valid product name.", "error");
       return;
@@ -75,7 +99,6 @@ const ProductUploadForm = ({
       return;
     }
 
-    // Check if we have a file to upload
     if (!processedFile && !productImageUrl) {
       showMessage("Please select an image file.", "error");
       return;
@@ -95,36 +118,39 @@ const ProductUploadForm = ({
     }
 
     setFileLoading(true);
+    setIsSubmitting(true);
+
     try {
       showMessage("Uploading product...", "info");
-      console.log("Uploading product with ID:", productId);
+      console.log("[ProductUploadForm] Uploading product:", productId);
 
-      // Upload the image if we have a processed file waiting
       let imageUrl = productImageUrl;
       if (processedFile) {
         try {
-          console.log("Uploading image to storage...");
+          console.log("[ProductUploadForm] Uploading image to storage...");
           const uploadResponse = await upload(processedFile);
-          console.log("Image uploaded successfully:", uploadResponse);
 
-          // Use cloudinaryUrl if available, otherwise use firebaseUrl
           imageUrl =
             uploadResponse.cloudinaryUrl ||
             uploadResponse.firebaseUrl ||
             uploadResponse.url;
 
-          // Clear the stored file after successful upload
+          console.log("[ProductUploadForm] Image uploaded:", imageUrl);
+
           setProcessedFile(null);
           window.processedFileToUpload = null;
         } catch (uploadError) {
-          console.error("Error uploading image:", uploadError);
+          console.error(
+            "[ProductUploadForm] Upload error:",
+            uploadError.message
+          );
           showMessage(`Error uploading image: ${uploadError.message}`, "error");
           setFileLoading(false);
+          setIsSubmitting(false);
           return;
         }
       }
 
-      // Create the product object with formatted values
       const productData = {
         id: productId,
         name: formattedName,
@@ -135,22 +161,24 @@ const ProductUploadForm = ({
         createdAt: new Date().toISOString(),
       };
 
-      // Add to Firestore
-      await addDoc(collection(db, "products"), productData);
+      console.log("[ProductUploadForm] Saving to database...");
+      const docRef = await addDoc(collection(db, "products"), productData);
+      console.log("[ProductUploadForm] Saved with ID:", docRef.id);
 
-      // Clear form and show success message
       showMessage("Product uploaded successfully!", "success");
+
       setProductName("");
-      setProductId((prevId) => prevId + 1); // Increment productId for the next product
+      setProductId((prevId) => prevId + 1);
       setProductSinglePrice("");
       setProductComboPrice("");
       setProductColor("");
       setProductImageUrl("");
     } catch (error) {
-      console.error("Error uploading product:", error);
+      console.error("[ProductUploadForm] Error:", error.message);
       showMessage(`Error uploading product: ${error.message}`, "error");
     } finally {
       setFileLoading(false);
+      setIsSubmitting(false);
     }
   };
 
@@ -170,17 +198,16 @@ const ProductUploadForm = ({
         <span className="font-medium">Product {productId}</span>
       </div>
 
-      <form className="flex flex-col gap-4">
-        {/* Form Fields */}
-        <div className="relative">
+      <form className="flex flex-col gap-5">
+        <div className="relative group">
           <input
             type="text"
             placeholder="Product Name"
             value={productName}
             onChange={handleProductNameChange}
-            className="w-full border border-gray-300 p-3 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BD815A] focus:border-transparent transition-all duration-200"
+            className="w-full border border-gray-300 p-3 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BD815A] focus:border-transparent transition-all duration-300 hover:border-[#BD815A]"
           />
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-[#BD815A] transition-colors duration-300">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5"
@@ -194,15 +221,16 @@ const ProductUploadForm = ({
             </svg>
           </span>
         </div>
-        <div className="relative">
+
+        <div className="relative group">
           <input
             type="text"
             placeholder="Color"
             value={productColor}
             onChange={handleProductColorChange}
-            className="w-full border border-gray-300 p-3 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BD815A] focus:border-transparent transition-all duration-200"
+            className="w-full border border-gray-300 p-3 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BD815A] focus:border-transparent transition-all duration-300 hover:border-[#BD815A]"
           />
-          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+          <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-[#BD815A] transition-colors duration-300">
             <svg
               xmlns="http://www.w3.org/2000/svg"
               className="h-5 w-5"
@@ -216,37 +244,36 @@ const ProductUploadForm = ({
             </svg>
           </span>
         </div>
+
         <div className="grid grid-cols-2 gap-4">
-          <div className="relative">
+          <div className="relative group">
             <input
               type="text"
               placeholder="Single Price"
               value={productSinglePrice}
               onChange={(e) => setProductSinglePrice(e.target.value)}
-              className="w-full border border-gray-300 p-3 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BD815A] focus:border-transparent transition-all duration-200"
+              className="w-full border border-gray-300 p-3 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BD815A] focus:border-transparent transition-all duration-300 hover:border-[#BD815A]"
             />
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-[#BD815A] transition-colors duration-300">
               ₵
             </span>
           </div>
-          <div className="relative">
+          <div className="relative group">
             <input
               type="text"
               placeholder="Combo Price"
               value={productComboPrice}
               onChange={(e) => setProductComboPrice(e.target.value)}
-              className="w-full border border-gray-300 p-3 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BD815A] focus:border-transparent transition-all duration-200"
+              className="w-full border border-gray-300 p-3 pl-10 rounded-lg focus:outline-none focus:ring-2 focus:ring-[#BD815A] focus:border-transparent transition-all duration-300 hover:border-[#BD815A]"
             />
-            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400">
+            <span className="absolute left-3 top-1/2 transform -translate-y-1/2 text-gray-400 group-hover:text-[#BD815A] transition-colors duration-300">
               ₵
             </span>
           </div>
         </div>
 
-        {/* Image Upload Section */}
-        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200">
+        <div className="bg-gray-50 p-6 rounded-lg border border-gray-200 shadow-sm hover:border-[#BD815A] transition-colors duration-300">
           <div className="flex flex-col gap-4">
-            {/* Image Uploader */}
             {processedFile ? (
               ""
             ) : (
@@ -260,10 +287,9 @@ const ProductUploadForm = ({
               </div>
             )}
 
-            {/* Image Preview */}
             {(productImageUrl || processedFile) && (
-              <div className="flex flex-col gap-2 ">
-                <div className="flex justify-center bg-gray-200 rounded-lg shadow-sm border border-gray-300">
+              <div className="flex flex-col gap-2">
+                <div className="flex justify-center bg-gray-200 rounded-lg shadow-sm border border-gray-300 relative overflow-hidden transition-all duration-300 hover:shadow-md">
                   <img
                     src={
                       processedFile
@@ -271,33 +297,48 @@ const ProductUploadForm = ({
                         : productImageUrl
                     }
                     alt="Product Preview"
-                    className="w-full h-64 object-cover rounded-lg shadow-sm"
+                    className="w-full h-64 object-cover rounded-lg"
                     style={{ aspectRatio: "7/5" }}
                   />
+                  <button
+                    type="button"
+                    onClick={handleRemoveImage}
+                    className="absolute top-2 right-2 bg-red-600 text-white p-2 rounded-full hover:bg-red-700 transition-all duration-300 shadow-lg z-10 transform hover:scale-110"
+                    title="Remove image"
+                    aria-label="Remove image">
+                    <FaTimes size={16} />
+                  </button>
                 </div>
-                <p className="text-center text-sm text-gray-500 italic">
+                <p className="text-center text-sm text-gray-600 font-medium">
                   Image Preview
                 </p>
               </div>
             )}
           </div>
         </div>
-        {/* Action Buttons */}
+
         <button
           type="button"
           onClick={handleUpload}
-          className="flex-1 bg-[#BD815A] text-white font-medium p-3 rounded-lg hover:bg-[#a06b4a] transition-all duration-200 shadow-md text-center flex items-center justify-center gap-2">
-          {fileLoading ? <FaSpinner className="animate-spin" /> : <FaUpload />}
-          Upload Product
+          disabled={isSubmitting}
+          className={`flex-1 bg-[#BD815A] text-white font-medium p-3 rounded-lg hover:bg-[#a06b4a] transition-all duration-300 shadow-md text-center flex items-center justify-center gap-2 ${
+            isSubmitting ? "opacity-75 cursor-not-allowed" : ""
+          }`}>
+          {fileLoading || isSubmitting ? (
+            <FaSpinner className="animate-spin" />
+          ) : (
+            <FaUpload />
+          )}
+          {isSubmitting ? "Uploading..." : "Upload Product"}
         </button>
 
-        <hr />
+        <hr className="my-1" />
 
-        <div className="flex gap-2 mt-4">
+        <div className="flex gap-3 mt-2">
           <button
             type="button"
             onClick={handleClearForm}
-            className="flex-1 bg-gray-500 text-white font-medium p-3 rounded-lg hover:bg-gray-600 transition-all duration-200 shadow-md text-center flex items-center justify-center gap-2">
+            className="flex-1 bg-gray-500 text-white font-medium p-3 rounded-lg hover:bg-gray-600 transition-all duration-300 shadow-md text-center flex items-center justify-center gap-2">
             <FaTrash />
             Clear Form
           </button>
@@ -305,7 +346,7 @@ const ProductUploadForm = ({
           <button
             type="button"
             onClick={toggleForm}
-            className="flex-1 bg-red-800 text-white font-medium p-3 rounded-lg hover:bg-gray-600 transition-all duration-200 shadow-md text-center flex items-center justify-center gap-2">
+            className="flex-1 bg-red-800 text-white font-medium p-3 rounded-lg hover:bg-red-700 transition-all duration-300 shadow-md text-center flex items-center justify-center gap-2">
             Delete Product
             <FaArrowRight className="text-xs" />
           </button>

@@ -14,8 +14,9 @@ const ProductUpload = () => {
   const [productColor, setProductColor] = useState("");
   const [productImageUrl, setProductImageUrl] = useState("");
   const [message, setMessage] = useState("");
-  const [messageType, setMessageType] = useState(""); // "success", "error", "info"
+  const [messageType, setMessageType] = useState("");
   const [fileLoading, setFileLoading] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
   const [deleteProductName, setDeleteProductName] = useState("");
   const [deleteProductColor, setDeleteProductColor] = useState("");
@@ -31,11 +32,6 @@ const ProductUpload = () => {
     setMessage(text);
     setMessageType(type);
     setShowNotification(true);
-
-    // Auto-hide notification after 5 seconds
-    setTimeout(() => {
-      setShowNotification(false);
-    }, 5000);
   };
 
   // Fetch the highest ID and set the next ID
@@ -53,11 +49,13 @@ const ProductUpload = () => {
         const highestId = !querySnapshot.empty
           ? querySnapshot.docs[0].data().id
           : 0;
-        console.log("Highest ID fetched:", highestId);
+        console.log("Next product ID:", highestId + 1);
         setProductId(highestId + 1);
       } catch (error) {
-        console.error("Error fetching highest ID:", error);
+        console.error("Error fetching product ID:", error.message);
         showMessage("Failed to fetch highest product ID.", "error");
+      } finally {
+        setIsLoading(false);
       }
     };
 
@@ -71,14 +69,15 @@ const ProductUpload = () => {
 
   return (
     <div
-      className="flex flex-col items-center justify-center min-h-screen bg-gray-100 py-10"
+      className="flex flex-col items-center justify-center min-h-screen bg-gray-100 py-10 px-4 sm:px-0"
       style={{
         backgroundImage: `url(${bgImage})`,
         backgroundRepeat: "no-repeat",
         backgroundSize: "cover",
         backgroundAttachment: "fixed",
+        backgroundPosition: "center",
       }}>
-      <div className="bg-white shadow-xl rounded-xl p-8 w-full max-w-md backdrop-blur-sm bg-opacity-95 border border-gray-100">
+      <div className="bg-white shadow-2xl rounded-xl p-6 sm:p-8 w-full max-w-md backdrop-blur-sm bg-opacity-95 border border-gray-100 transition-all duration-300 hover:shadow-xl">
         <div className="text-center mb-6">
           <h1 className="font-sans font-semibold text-[28px] mb-2">
             <span className="text-white bg-black px-1 py-0.5 rounded-sm">
@@ -89,9 +88,14 @@ const ProductUpload = () => {
           <h2 className="text-xl font-medium text-gray-700 mb-1">
             {isDeleteForm ? "Delete Product" : "Upload Product"}
           </h2>
+          <div className="w-20 h-1 bg-[#BD815A] mx-auto rounded-full"></div>
         </div>
 
-        {!isDeleteForm ? (
+        {isLoading ? (
+          <div className="flex justify-center items-center py-10">
+            <div className="animate-spin rounded-full h-12 w-12 border-t-2 border-b-2 border-[#BD815A]"></div>
+          </div>
+        ) : !isDeleteForm ? (
           <ProductUploadForm
             productId={productId}
             productName={productName}
